@@ -1,0 +1,146 @@
+using System;
+using Enemies;
+using Gear;
+using Player;
+using UnityEngine;
+
+namespace AutoAimLite.Custom_Weapon_code
+{
+	// Token: 0x02000007 RID: 7
+	internal class Manager_WeaponAutoAim : MonoBehaviour
+	{
+		// Token: 0x06000013 RID: 19 RVA: 0x00002600 File Offset: 0x00000800
+		public Manager_WeaponAutoAim(IntPtr value) : base(value)
+		{
+		}
+
+		// Token: 0x06000014 RID: 20 RVA: 0x0000210E File Offset: 0x0000030E
+		public void Setup()
+		{
+		}
+
+		// Token: 0x06000015 RID: 21 RVA: 0x00002690 File Offset: 0x00000890
+		public void SetupReticle()
+		{
+			this.m_ReticleHolder = new GameObject();
+			this.m_ReticleHolder.transform.SetParent(GuiManager.CrosshairLayer.CanvasTrans);
+			this.m_Reticle = UnityEngine.Object.Instantiate<CrosshairHitIndicator>(GuiManager.CrosshairLayer.m_hitIndicatorFriendly, this.m_ReticleHolder.transform);
+			this.m_Reticle.name = "SmartPistol_AutoAimIndicator";
+			this.m_Reticle.transform.localScale = Vector3.zero;
+			this.SetVFX(this.m_TargetedColor, this.m_TargetedEulerAngles);
+			this.m_Reticle.transform.localEulerAngles = this.m_TargetedEulerAngles;
+		}
+
+		// Token: 0x06000016 RID: 22 RVA: 0x00002111 File Offset: 0x00000311
+		public void Update()
+		{
+			this.UpdateColor();
+			this.UpdateDetection();
+		}
+
+		// Token: 0x06000017 RID: 23 RVA: 0x00002738 File Offset: 0x00000938
+		public void UpdateDetection()
+		{
+			bool flag = this.m_Target != null;
+			if (flag)
+			{
+				this.m_ReticleHolder.transform.position = this.m_PlayerCamera.WorldToScreenPoint(this.m_Target.AimTarget.position);
+				bool flag2 = !this.m_HasTarget;
+				if (flag2)
+				{
+					this.m_Reticle.transform.localScale = Vector3.one * 2f;
+					this.m_Reticle.transform.localEulerAngles = this.m_TargetedEulerAngles;
+					this.m_Reticle.AnimateScale(1.5f, 0.13f);
+					this.m_HasTarget = true;
+				}
+			}
+			else
+			{
+				this.m_Reticle.transform.localEulerAngles += new Vector3(0f, 0f, 5f);
+			}
+			bool flag3 = this.m_HasTarget && this.m_Target == null;
+			if (flag3)
+			{
+				this.m_Reticle.AnimateScale(0f, 0.5f);
+				this.m_HasTarget = false;
+			}
+			bool flag4 = this.m_DetectionTick >= Time.time;
+			if (!flag4)
+			{
+				this.m_Target = SentryGunInstance_Detection.CheckForTargetLegacy(this.m_BulletWeapon.ArchetypeData, this.m_BulletWeapon.transform);
+				this.m_DetectionTick = Time.time + 0.25f;
+			}
+		}
+
+		// Token: 0x06000018 RID: 24 RVA: 0x000028A0 File Offset: 0x00000AA0
+		public void UpdateColor()
+		{
+			bool hasTarget = this.m_HasTarget;
+			if (hasTarget)
+			{
+				this.m_Reticle.m_hitColor = this.m_TargetedColor;
+			}
+			else
+			{
+				this.m_Reticle.m_hitColor = this.m_UnTargetedColor;
+			}
+			bool flag = !InputMapper.GetButtonKeyMouse(InputAction.Aim, eFocusState.FPS) || this.m_BulletWeapon.GetCurrentClip() <= 0;
+			if (flag)
+			{
+				this.m_ReticleHolder.transform.localScale = Vector3.one * 0.5f;
+				this.m_ReticleHolder.transform.localEulerAngles += new Vector3(0f, 0f, 2f);
+				this.m_Reticle.m_hitColor = this.m_PassiveDetection;
+			}
+			else
+			{
+				this.m_ReticleHolder.transform.localScale = Vector3.one;
+				this.m_ReticleHolder.transform.localEulerAngles = Vector3.zero;
+			}
+			this.m_Reticle.UpdateColorsWithAlphaMul(this.m_Reticle.m_hitColor.a);
+		}
+
+		// Token: 0x06000019 RID: 25 RVA: 0x00002122 File Offset: 0x00000322
+		public void SetVFX(Color color, Vector3 euler)
+		{
+			this.m_Reticle.transform.localEulerAngles = euler;
+			this.m_Reticle.m_hitColor = color;
+			this.m_Reticle.UpdateColorsWithAlphaMul(1f);
+		}
+
+		// Token: 0x0400000E RID: 14
+		public GameObject m_ReticleHolder;
+
+		// Token: 0x0400000F RID: 15
+		public CrosshairHitIndicator m_Reticle;
+
+		// Token: 0x04000010 RID: 16
+		public EnemyAgent m_Target;
+
+		// Token: 0x04000011 RID: 17
+		public Camera m_PlayerCamera;
+
+		// Token: 0x04000012 RID: 18
+		public float m_DetectionTick;
+
+		// Token: 0x04000013 RID: 19
+		public bool m_HasTarget;
+
+		// Token: 0x04000014 RID: 20
+		public BulletWeapon m_BulletWeapon;
+
+		// Token: 0x04000015 RID: 21
+		public PlayerAgent m_Owner;
+
+		// Token: 0x04000016 RID: 22
+		public Color m_TargetedColor = new Color(1.2f, 0.3f, 0.1f, 1f);
+
+		// Token: 0x04000017 RID: 23
+		public Color m_UnTargetedColor = new Color(0.3f, 0.1f, 0.1f, 1f);
+
+		// Token: 0x04000018 RID: 24
+		public Color m_PassiveDetection = new Color(0.5f, 0.5f, 0.5f, 0.5f);
+
+		// Token: 0x04000019 RID: 25
+		public Vector3 m_TargetedEulerAngles = new Vector3(0f, 0f, 45f);
+	}
+}
